@@ -1,0 +1,7 @@
+$ pytest -m "not slow"
+.....................                                                    [100%]
+21 passed, 1 deselected, 2 warnings in 17.25s
+
+$ pytest
+......................                                                   [100%]
+22 passed, 2 warnings in 25.83s

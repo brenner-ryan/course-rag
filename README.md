@@ -116,12 +116,14 @@ has exactly one correct answer and a wrong retrieval is obvious.
 ## Tests
 
 ```bash
-pytest -m "not slow"   # 17 tests, about 15 seconds
-pytest                 # adds one test that runs the real model, about 35 seconds
+pytest -m "not slow"   # 21 tests, about 17 seconds
+pytest                 # adds one test that runs the real model, 22 in about 26 seconds
 ```
 
 The suite covers chunking, index construction, retrieval ranking, source citation and
-deduplication, session creation and history capping, and every API endpoint.
+deduplication, session creation and history capping, corpus parsing, prompt length, and every
+API endpoint. The output of an actual run is committed as `test-output.txt`, so the numbers
+above can be checked rather than taken on trust.
 
 Generation is stubbed in most tests on purpose. The model is slow and its output is not
 deterministic, so asserting on the text would make the suite slow and flaky while testing

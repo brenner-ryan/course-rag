@@ -1,19 +1,19 @@
 # Architecture
 
-688 lines across nine files. Two pipelines: one that runs once to build the index, and one
+643 lines of application code across eight files, plus a 233-line test suite. Two pipelines: one that runs once to build the index, and one
 that runs per question.
 
 | File | Lines | Responsibility |
 |---|---|---|
-| `app/config.py` | 30 | every setting, as an environment variable with a working default |
-| `app/data.py` | 80 | parses the Markdown corpus, yields (course, lesson) pairs |
+| `app/config.py` | 36 | every setting, as an environment variable with a working default |
+| `app/data.py` | 81 | parses the Markdown corpus, yields (course, lesson) pairs |
 | `app/store.py` | 89 | chunking, index construction, retrieval |
-| `app/llm.py` | 67 | generation: local model, or any OpenAI-compatible endpoint |
-| `app/rag.py` | 70 | the orchestrator: session, retrieve, build context, generate, cite |
+| `app/llm.py` | 124 | generation: local model, or any OpenAI-compatible endpoint |
+| `app/rag.py` | 79 | the orchestrator: session, retrieve, build context, generate, cite |
 | `app/main.py` | 99 | FastAPI routes, request and response schemas, static serving |
 | `app/ingest.py` | 9 | entry point for building the index |
-| `static/index.html` | 126 | the entire frontend, no build step |
-| `tests/test_rag.py` | 176 | 18 tests |
+| `static/index.html` | 126 | the entire frontend, plain HTML and JavaScript |
+| `tests/test_rag.py` | 233 | 22 tests |
 
 ## Pipeline 1: ingest, run once
 
