@@ -6,7 +6,7 @@ that runs per question.
 | File | Lines | Responsibility |
 |---|---|---|
 | `app/config.py` | 30 | every setting, as an environment variable with a working default |
-| `app/data.py` | 22 | loads the corpus, yields (course, lesson) pairs |
+| `app/data.py` | 80 | parses the Markdown corpus, yields (course, lesson) pairs |
 | `app/store.py` | 89 | chunking, index construction, retrieval |
 | `app/llm.py` | 67 | generation: local model, or any OpenAI-compatible endpoint |
 | `app/rag.py` | 70 | the orchestrator: session, retrieve, build context, generate, cite |
@@ -18,7 +18,8 @@ that runs per question.
 ## Pipeline 1: ingest, run once
 
 ```
-  data/courses.json                         3 courses, 9 lessons, 5,827 characters
+  data/courses/*.md                         3 courses, 9 lessons, 5,836 characters
+        |                                   one Markdown file per course, readable
         |
         v
   data.iter_lessons()                       yields (course, lesson) pairs
@@ -101,8 +102,7 @@ embedding model would mean changing `store.py`.
 
 **Retrieval is unconditional.** Every question triggers a search. The course's version gives
 the model a search tool and lets it decide whether to call it, which is a trained behaviour
-that an 80M parameter model does not perform reliably. The trade is discussed in
-`REFLECTION.md`.
+that an 80M parameter model does not perform reliably. The trade is noted in the README.
 
 **The same model embeds queries and documents.** all-MiniLM-L6-v2 is symmetric, so no task
 prefix is needed. Some embedding models are not, and using the wrong prefix measurably

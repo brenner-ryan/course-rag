@@ -37,6 +37,32 @@ def stub(monkeypatch):
     monkeypatch.setattr(rag, "generate", lambda prompt: "STUB:" + str(len(prompt)))
 
 
+# --- corpus parsing -------------------------------------------------------
+
+def test_corpus_parses():
+    cs = load_courses()
+    assert len(cs) == 3
+    for c in cs:
+        assert c["title"] and c["instructor"] and c["link"].startswith("http")
+        assert len(c["lessons"]) == 3
+        for l in c["lessons"]:
+            assert l["number"] in (1, 2, 3)
+            assert l["title"] and len(l["content"]) > 200
+
+
+def test_parser_handles_the_documented_shape():
+    from app.data import parse_course
+    c = parse_course(
+        "# Title Here\n\ninstructor: A Person\nlink: https://example.edu/x\n\n"
+        "## Lesson 1: First\n\nOne\nwrapped line.\n\nSecond para.\n\n"
+        "## Lesson 2: Second\n\nBody.\n")
+    assert c["title"] == "Title Here"
+    assert c["instructor"] == "A Person"
+    assert [l["number"] for l in c["lessons"]] == [1, 2]
+    # wrapped source lines are rejoined, blank-line paragraph breaks are kept
+    assert c["lessons"][0]["content"] == "One wrapped line.\n\nSecond para."
+
+
 # --- chunking -------------------------------------------------------------
 
 def test_short_text_is_one_chunk():

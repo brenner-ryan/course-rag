@@ -100,9 +100,14 @@ Every setting has a working default. All are environment variables.
 
 ## The data is invented
 
-`data/courses.json` contains three fictional courses: sandwich engineering, pigeon
-communication, and competitive napping. None of it is real course material. That is
-intentional. This repository is public, and real coursework is somebody's education record.
+`data/courses/` contains three fictional courses, one Markdown file each: sandwich
+engineering, pigeon communication, and competitive napping. Open them and read them. None
+of it is real course material. This repository is public, and real coursework is somebody's
+education record.
+
+Adding a course means dropping another Markdown file in that directory and re-running
+`python -m app.ingest`. The format is a `#` title, `instructor:` and `link:` lines, then
+`## Lesson N: Title` sections.
 
 The content is deliberately absurd but internally consistent, so retrieval can be tested
 properly: each lesson contains facts that appear in no other lesson, which means a query
@@ -139,7 +144,7 @@ tests/           pytest suite
 
 ## Differences from the course's version
 
-Two, both deliberate, both explained in `REFLECTION.md`.
+Two, both deliberate.
 
 The course application gives the model a search **tool** and lets it decide whether and when
 to call it. This one always retrieves and then hands the results to the model. Deciding to
