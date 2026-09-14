@@ -1,7 +1,7 @@
 # Architecture
 
-643 lines of application code across eight files, plus a 233-line test suite. Two pipelines: one that runs once to build the index, and one
-that runs per question.
+643 lines of application code across eight files, plus a 233-line test suite. Two
+pipelines: one that runs once to build the index, and one that runs per question.
 
 | File | Lines | Responsibility |
 |---|---|---|

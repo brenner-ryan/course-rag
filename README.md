@@ -144,6 +144,12 @@ static/          single-page frontend, no build step
 tests/           pytest suite
 ```
 
+## Where the rest of the documentation lives
+
+This repository carries what a reader of the code needs. The reflection on what worked and
+what failed, and the record of the prompts and workflow used to build it, are part of the
+coursework submission rather than of the project, and are not duplicated here.
+
 ## Differences from the course's version
 
 Two, both deliberate.
