@@ -175,10 +175,8 @@ def test_prompt_fits_the_input_window():
     cutting off the question itself and the model answered from context alone. This
     asserts the assembled prompt fits, for a question against every course.
     """
-    from transformers import AutoTokenizer
     from app import llm
 
-    tok = AutoTokenizer.from_pretrained(config.LOCAL_MODEL)
     questions = [
         "What are the three sandwich failure modes and how do they differ?",
         "Is a message carried by pigeon authenticated in any way at all?",
@@ -189,7 +187,7 @@ def test_prompt_fits_the_input_window():
         ctx = "\n\n---\n\n".join(h["text"] for h in hits)
         overhead = llm.count_tokens(rag.PROMPT.format(context="", question=q))
         ctx = llm.fit_context(ctx, overhead)
-        n = len(tok(rag.PROMPT.format(context=ctx, question=q))["input_ids"])
+        n = llm.count_tokens(rag.PROMPT.format(context=ctx, question=q))
         assert n <= llm.MAX_INPUT_TOKENS, "%d tokens for %r" % (n, q)
 
 

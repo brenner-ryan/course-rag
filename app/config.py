@@ -6,14 +6,20 @@ obtaining a key, editing a config, or reaching any host on somebody else's netwo
 import os
 
 # Generation backend.
-#   "local"  - runs a small model on this machine through transformers (default)
+#   "local"  - runs a small ONNX model on this machine, no extra dependencies (default)
 #   "openai" - any OpenAI-compatible /v1/chat/completions endpoint
 LLM_BACKEND = os.getenv("LLM_BACKEND", "local")
 
-# Deliberately tiny. ~80 MB, Apache 2.0, runs on a CPU in a couple of seconds.
+# ONNX graph precision. "" is full precision, "_quantized" is int8.
+# int8 is 95 MB against 374 MB, but on a model this small the damage is not subtle:
+# it dropped an item from a three-item answer and replied "ii." to a yes/no question.
+# Full precision is the default for that reason. Set to "_quantized" if size matters more.
+ONNX_VARIANT = os.getenv("ONNX_VARIANT", "")
+
+# Deliberately tiny. 80M parameters, Apache 2.0, runs on a CPU in a couple of seconds.
 # The answers are not clever. That is an accepted trade for making this runnable
 # by anyone on any machine without a GPU, an API key, or a 4 GB download.
-LOCAL_MODEL = os.getenv("LOCAL_MODEL", "google/flan-t5-small")
+LOCAL_MODEL = os.getenv("LOCAL_MODEL", "Xenova/flan-t5-small")
 
 # Only used when LLM_BACKEND=openai. No default host on purpose: pointing this at
 # a machine the user does not own is how a project stops working for everyone else.

@@ -20,7 +20,17 @@ offline, on the machine that cloned the repository.
 
 ## Requirements
 
-Python 3.11 or newer. About 1.5 GB of disk for the dependencies and the two models. No GPU.
+Python 3.11 or newer. No GPU, no API key, no account.
+
+About 1 GB of disk: 459 MB of Python packages, and two models totalling 543 MB that
+download themselves on first use. Setting `ONNX_VARIANT=_quantized` brings the language
+model down from 376 MB to 97 MB, at a real cost in answer quality described below.
+
+There is **no machine-learning dependency in `requirements.txt`**. The language model runs
+on `onnxruntime`, which arrives as a ChromaDB dependency along with `tokenizers`, `numpy`
+and `huggingface_hub`, because Chroma uses all four for embeddings. An earlier version used
+`transformers` and `torch`, which added about 990 MB to run a model with 80 million
+parameters.
 
 ## Setup
 
@@ -32,10 +42,6 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-The largest dependency is PyTorch at roughly 500 MB. `requirements.txt` pins the CPU build
-through PyTorch's own package index; without that line pip installs the CUDA build instead,
-which is about 2.5 GB and useless without an NVIDIA card.
-
 ## Running it
 
 ```bash
@@ -46,13 +52,13 @@ uvicorn app.main:app --reload
 Then open <http://127.0.0.1:8000>. Interactive API documentation is at
 <http://127.0.0.1:8000/docs>.
 
-The first question is slow, around thirty seconds, because it downloads the language model.
-After that answers take roughly three to five seconds on a CPU.
+The first question downloads the language model, so it takes a while. After that answers
+take roughly one to six seconds on a CPU.
 
 ## About the answers
 
-They are not clever. The default model is `google/flan-t5-small`, which has 80 million
-parameters and is a few years old. It was chosen because it downloads in seconds, runs on
+They are not clever. The default model is `flan-t5-small`, which has 80 million parameters
+and is a few years old, run as ONNX. It was chosen because it downloads in seconds, runs on
 any CPU, and needs no key, which makes this repository something a reader can actually run.
 Answer quality is not what this project is demonstrating; retrieval, citation, session
 handling and the surrounding plumbing are.
@@ -72,7 +78,8 @@ Every setting has a working default. All are environment variables.
 | Variable | Default | Meaning |
 |---|---|---|
 | `LLM_BACKEND` | `local` | `local` or `openai` |
-| `LOCAL_MODEL` | `google/flan-t5-small` | model used when backend is `local` |
+| `LOCAL_MODEL` | `Xenova/flan-t5-small` | ONNX model repository used when backend is `local` |
+| `ONNX_VARIANT` | *(empty)* | `_quantized` for a 97 MB int8 graph instead of 376 MB, at a real quality cost |
 | `LLM_BASE_URL` | *(empty)* | OpenAI-compatible base URL, required when backend is `openai` |
 | `LLM_MODEL` | *(empty)* | model name to request from that endpoint |
 | `CHROMA_DIR` | `./chroma_db` | where the vector index is stored |
@@ -141,3 +148,11 @@ parameter model does not perform reliably.
 
 The course used Anthropic's API for generation. This uses a local model by default, so the
 project runs for anyone who clones it rather than only for someone holding a key.
+
+## A note on the quantized graph
+
+`ONNX_VARIANT=_quantized` is tempting: 97 MB instead of 376 MB for the same model. On a
+model this small the damage is not subtle. Asked for three failure modes it returns two,
+and asked a yes or no question it answered `ii.`. Full precision is the default for that
+reason, and the switch is documented rather than removed because on a larger model the
+trade would look different.

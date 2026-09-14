@@ -78,7 +78,7 @@ exists.
         |
         +--4--> llm.generate(prompt)        prompt = instruction + context + question
         |            |
-        |            +-- LLM_BACKEND=local  --> flan-t5-small on the CPU   [default]
+        |            +-- LLM_BACKEND=local  --> flan-t5-small, ONNX, CPU   [default]
         |            +-- LLM_BACKEND=openai --> POST {LLM_BASE_URL}/chat/completions
         |
         +--5--> sources                     hits deduplicated by (course, lesson_number)
@@ -116,6 +116,15 @@ of its own.
 `/api/session/{id}` endpoint returns them, but the prompt sent to the model contains only
 the retrieved context and the current question. Follow-up questions that depend on the
 previous answer will therefore not resolve. This is the most obvious next feature.
+
+**Generation has no KV cache.** The decoder re-runs over the whole sequence each step,
+which is quadratic. On an 80M model producing at most 160 tokens it is not measurable, and
+it is thirty lines instead of a hundred. The cache path is where this kind of loop usually
+goes subtly wrong.
+
+**Nothing in `requirements.txt` is a machine-learning library.** `onnxruntime`,
+`tokenizers`, `numpy` and `huggingface_hub` all arrive as ChromaDB dependencies, because
+Chroma needs them for embeddings. The language model reuses them.
 
 **Failure is degraded, not fatal.** An empty index returns a message telling you to run the
 ingest rather than raising. A question with no good match still returns whatever came back,
