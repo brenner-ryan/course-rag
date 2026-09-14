@@ -9,18 +9,25 @@ recorded in the README rather than hidden.
 import uuid
 
 from . import store
+from . import llm
 from .llm import generate
 
 SESSIONS = {}
 MAX_TURNS = 6
 
-PROMPT = """Answer the question using only the course material below.
+# The question comes FIRST. The model's input window is 512 tokens and a real prompt
+# exceeds it, so something gets cut. Putting the question last meant the truncation was
+# removing the question itself and the model was answering from context alone. Context is
+# now trimmed deliberately to fit instead, so what gets dropped is the least relevant
+# chunk rather than the thing being asked.
+PROMPT = """Question: {question}
+
+Answer the question using only the course material below.
 If the material does not contain the answer, say you do not know.
 
 Course material:
 {context}
 
-Question: {question}
 Answer:"""
 
 
@@ -47,6 +54,8 @@ def answer(question, session_id=None):
         return {"answer": reply, "sources": [], "session_id": session_id}
 
     context = "\n\n---\n\n".join(h["text"] for h in hits)
+    overhead = llm.count_tokens(PROMPT.format(context="", question=question))
+    context = llm.fit_context(context, overhead)
     reply = generate(PROMPT.format(context=context, question=question))
 
     sources = []

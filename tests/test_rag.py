@@ -166,6 +166,39 @@ def test_frontend_is_served():
     assert "Course Materials RAG" in r.text
 
 
+# --- prompt fits the model's input window ---------------------------------
+
+def test_prompt_fits_the_input_window():
+    """A real prompt exceeded flan-t5-small's 512-token input and was silently truncated.
+
+    Because the question used to sit at the end of the template, the truncation was
+    cutting off the question itself and the model answered from context alone. This
+    asserts the assembled prompt fits, for a question against every course.
+    """
+    from transformers import AutoTokenizer
+    from app import llm
+
+    tok = AutoTokenizer.from_pretrained(config.LOCAL_MODEL)
+    questions = [
+        "What are the three sandwich failure modes and how do they differ?",
+        "Is a message carried by pigeon authenticated in any way at all?",
+        "What ambient temperature is recommended for competitive napping?",
+    ]
+    for q in questions:
+        hits = store.search(q)
+        ctx = "\n\n---\n\n".join(h["text"] for h in hits)
+        overhead = llm.count_tokens(rag.PROMPT.format(context="", question=q))
+        ctx = llm.fit_context(ctx, overhead)
+        n = len(tok(rag.PROMPT.format(context=ctx, question=q))["input_ids"])
+        assert n <= llm.MAX_INPUT_TOKENS, "%d tokens for %r" % (n, q)
+
+
+def test_question_precedes_context_in_the_prompt():
+    """Ordering is load-bearing. If anything is dropped it must not be the question."""
+    built = rag.PROMPT.format(context="CONTEXT_MARKER", question="QUESTION_MARKER")
+    assert built.index("QUESTION_MARKER") < built.index("CONTEXT_MARKER")
+
+
 # --- the real model -------------------------------------------------------
 
 @pytest.mark.slow

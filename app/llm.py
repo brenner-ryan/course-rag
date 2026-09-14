@@ -33,10 +33,38 @@ def _load():
     return _model, _tok
 
 
+MAX_INPUT_TOKENS = 512
+
+
+def fit_context(context, overhead):
+    """Trim `context` so that context + overhead fits the model's input window.
+
+    Measured in TOKENS, not characters. A character budget cannot bound a token limit:
+    the same 700 characters can be 170 tokens of prose or well over 512 of dense text.
+
+    A no-op on the openai backend, whose context windows are far larger and unknown here.
+    """
+    if config.LLM_BACKEND == "openai":
+        return context
+    _, tok = _load()
+    budget = MAX_INPUT_TOKENS - overhead - 8          # 8 tokens of slack
+    ids = tok(context, add_special_tokens=False)["input_ids"]
+    if len(ids) <= budget:
+        return context
+    return tok.decode(ids[:max(0, budget)], skip_special_tokens=True)
+
+
+def count_tokens(text):
+    if config.LLM_BACKEND == "openai":
+        return 0
+    _, tok = _load()
+    return len(tok(text, add_special_tokens=False)["input_ids"])
+
+
 def _local(prompt):
     import torch
     model, tok = _load()
-    inputs = tok(prompt, return_tensors="pt", truncation=True, max_length=512)
+    inputs = tok(prompt, return_tensors="pt", truncation=True, max_length=MAX_INPUT_TOKENS)
     with torch.no_grad():
         out = model.generate(**inputs, max_new_tokens=config.MAX_NEW_TOKENS)
     return tok.decode(out[0], skip_special_tokens=True).strip()
