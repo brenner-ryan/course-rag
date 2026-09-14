@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Course Materials RAG</title>
+<style>
+  :root { --bg:#fbfaf8; --fg:#1c1b19; --muted:#6b6862; --rule:#e2ded6;
+          --card:#fff; --accent:#2f5d50; --accent-soft:#e8f0ed; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#161513; --fg:#ecebe7; --muted:#9c9992; --rule:#332f2a;
+            --card:#1e1d1a; --accent:#79b3a1; --accent-soft:#1d2a26; }
+  }
+  * { box-sizing:border-box }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif }
+  .wrap { max-width:780px; margin:0 auto; padding:28px 18px 80px }
+  header { border-bottom:2px solid var(--fg); padding-bottom:12px; margin-bottom:18px }
+  h1 { margin:0 0 4px; font-size:1.5rem }
+  .sub { margin:0; color:var(--muted); font-size:.92rem }
+  #log { margin:18px 0 }
+  .turn { margin-bottom:20px }
+  .q { font-weight:600 }
+  .a { margin-top:6px; white-space:pre-wrap }
+  .sources { margin-top:8px; font-size:.84rem; color:var(--muted) }
+  .sources a { color:var(--accent) }
+  form { display:flex; gap:8px; margin-top:20px }
+  input[type=text] { flex:1; padding:11px 13px; font:inherit; border:1px solid var(--rule);
+                     border-radius:8px; background:var(--card); color:var(--fg) }
+  button { padding:11px 18px; font:inherit; font-weight:600; border:0; border-radius:8px;
+           background:var(--accent); color:#fff; cursor:pointer }
+  button:disabled { opacity:.5; cursor:default }
+  .bar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:14px }
+  .chip { background:var(--accent-soft); color:var(--accent); border-radius:999px;
+          padding:4px 11px; font-size:.8rem; border:0; cursor:pointer; font-family:inherit }
+  .note { color:var(--muted); font-size:.84rem; margin-top:22px; border-top:1px solid var(--rule); padding-top:12px }
+  .thinking { color:var(--muted); font-style:italic }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Course Materials RAG</h1>
+    <p class="sub">Ask a question. Answers are generated only from the indexed course material, with the lessons used shown underneath.</p>
+  </header>
+
+  <div class="bar" id="examples"></div>
+  <div id="log"></div>
+
+  <form id="f">
+    <input type="text" id="q" placeholder="Ask about the course material..." autocomplete="off" required>
+    <button type="submit" id="send">Ask</button>
+    <button type="button" id="reset" class="chip" title="Start a new session">New chat</button>
+  </form>
+
+  <p class="note" id="stats"></p>
+</div>
+
+<script>
+let session = null;
+const log = document.getElementById('log');
+
+async function stats() {
+  const s = await (await fetch('/api/stats')).json();
+  document.getElementById('stats').textContent =
+    `${s.courses} courses, ${s.lessons} lessons, ${s.indexed_chunks} indexed chunks. ` +
+    `Model: ${s.model} (${s.backend}). Answers take a few seconds on a CPU.`;
+}
+
+async function examples() {
+  const cs = await (await fetch('/api/courses')).json();
+  const box = document.getElementById('examples');
+  cs.forEach(c => {
+    const b = document.createElement('button');
+    b.className = 'chip';
+    b.textContent = 'What is ' + c.title + ' about?';
+    b.onclick = () => { document.getElementById('q').value = b.textContent; ask(); };
+    box.appendChild(b);
+  });
+}
+
+function render(question, answer, sources, pending) {
+  const d = document.createElement('div');
+  d.className = 'turn';
+  const src = (sources || []).map(s =>
+    `<a href="${s.link}" target="_blank" rel="noopener">${s.course}</a>, lesson ${s.lesson_number}: ${s.lesson_title}`
+  ).join('<br>');
+  d.innerHTML = `<div class="q">${question}</div>` +
+    `<div class="a ${pending ? 'thinking' : ''}">${answer}</div>` +
+    (src ? `<div class="sources">Sources<br>${src}</div>` : '');
+  log.appendChild(d);
+  window.scrollTo(0, document.body.scrollHeight);
+  return d;
+}
+
+async function ask() {
+  const input = document.getElementById('q');
+  const question = input.value.trim();
+  if (!question) return;
+  input.value = '';
+  document.getElementById('send').disabled = true;
+  const placeholder = render(question, 'thinking...', [], true);
+  try {
+    const r = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({question, session_id: session})
+    });
+    const data = await r.json();
+    session = data.session_id;
+    placeholder.remove();
+    render(question, data.answer, data.sources, false);
+  } catch (e) {
+    placeholder.remove();
+    render(question, 'Request failed: ' + e, [], false);
+  } finally {
+    document.getElementById('send').disabled = false;
+    stats();
+  }
+}
+
+document.getElementById('f').onsubmit = e => { e.preventDefault(); ask(); };
+document.getElementById('reset').onclick = () => { session = null; log.innerHTML = ''; };
+stats(); examples();
+</script>
+</body>
+</html>

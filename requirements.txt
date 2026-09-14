@@ -1,0 +1,13 @@
+# The CPU build of torch is ~500 MB. Without this index line pip pulls the CUDA build
+# instead, which is roughly 2.5 GB of wheels that are useless without an NVIDIA GPU.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+chromadb==1.5.9
+fastapi==0.141.1
+uvicorn==0.52.4
+transformers==5.17.0
+torch==2.14.0+cpu
+
+# testing only
+pytest==9.1.1
+httpx==0.28.1
